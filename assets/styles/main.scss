@@ -1,0 +1,143 @@
+// assets/styles/main.scss
+
+// ── Font imports ──
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+// ── Variables ──
+$font-primary: 'Plus Jakarta Sans', sans-serif;
+$font-mono: 'JetBrains Mono', monospace;
+
+// ── Global ──
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: $font-primary;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ── Vuetify overrides ──
+.v-application {
+  font-family: $font-primary !important;
+}
+
+.v-card-title {
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+}
+
+.v-btn {
+  text-transform: none !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+}
+
+.v-text-field .v-field {
+  font-family: $font-primary;
+}
+
+// ── Auth pages background ──
+.auth-background {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    left: -20%;
+    width: 60%;
+    height: 80%;
+    background: radial-gradient(
+      ellipse,
+      rgba(108, 92, 231, 0.12) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    right: -15%;
+    width: 50%;
+    height: 70%;
+    background: radial-gradient(
+      ellipse,
+      rgba(0, 206, 201, 0.08) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+}
+
+// ── Card glow effect ──
+.card-glow {
+  position: relative;
+  border: 1px solid rgba(108, 92, 231, 0.15);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    border-color: rgba(108, 92, 231, 0.3);
+    box-shadow: 0 0 30px rgba(108, 92, 231, 0.08);
+  }
+}
+
+// ── Fade transitions ──
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+// ── Scrollbar ──
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(108, 92, 231, 0.3);
+  border-radius: 3px;
+
+  &:hover {
+    background: rgba(108, 92, 231, 0.5);
+  }
+}
+
+// ── Utilities ──
+.font-mono {
+  font-family: $font-mono !important;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #6C5CE7 0%, #00CEC9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
