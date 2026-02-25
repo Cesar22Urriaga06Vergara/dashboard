@@ -1,0 +1,436 @@
+<template>
+  <v-card class="card-glow">
+    <v-card-title class="d-flex align-center justify-space-between">
+      <span>Gestión de Habitaciones</span>
+      <v-btn color="primary" @click="openCreateDialog">
+        <v-icon left>mdi-plus</v-icon>
+        Nueva Habitación
+      </v-btn>
+    </v-card-title>
+
+    <v-card-text class="pb-0">
+      <v-row align="center" class="ga-2">
+        <v-col cols="6" sm="3" md="2">
+          <v-select
+            v-model="filterEstado"
+            :items="estadoOptions"
+            label="Estado"
+            clearable
+            hide-details
+            density="compact"
+          />
+        </v-col>
+
+        <v-col cols="6" sm="3" md="2">
+          <v-select
+            v-model="filterTipo"
+            :items="tiposHabitacion"
+            item-title="nombreTipo"
+            item-value="id"
+            label="Tipo de Habitación"
+            clearable
+            hide-details
+            density="compact"
+          />
+        </v-col>
+
+        <v-col cols="6" sm="3" md="2">
+          <v-select
+            v-model="filterNumero"
+            :items="habitacionesOptions"
+            label="Buscar habitación"
+            clearable
+            hide-details
+            density="compact"
+          />
+        </v-col>
+
+        <v-spacer class="d-none d-md-block" />
+
+        <v-col cols="auto">
+          <v-btn
+            icon
+            variant="text"
+            size="small"
+            :loading="loading"
+            @click="loadHabitaciones"
+          >
+            <v-icon icon="mdi-refresh" />
+            <v-tooltip activator="parent" location="bottom">Actualizar</v-tooltip>
+          </v-btn>
+        </v-col>
+      </v-row>
+    </v-card-text>
+
+    <v-data-table
+      :headers="headers"
+      :items="filteredHabitaciones"
+      :loading="loading"
+      :items-per-page="10"
+      hover
+      class="rooms-table"
+    >
+      <template #item.numeroHabitacion="{ item }">
+        <div class="py-2">
+          <div class="text-body-2 font-weight-medium">
+            <v-icon left size="small">mdi-door</v-icon>
+            Habitación {{ item.numeroHabitacion }}
+          </div>
+          <div v-if="item.piso" class="text-caption text-medium-emphasis">
+            Piso {{ item.piso }}
+          </div>
+        </div>
+      </template>
+
+      <template #item.tipoHabitacion="{ item }">
+        <div v-if="item.tipoHabitacion" class="py-2">
+          <div class="text-body-2 font-weight-medium">
+            {{ item.tipoHabitacion.nombreTipo }}
+          </div>
+          <div class="text-caption text-medium-emphasis">
+            <v-icon size="x-small">mdi-account-multiple</v-icon>
+            {{ item.tipoHabitacion.capacidadPersonas }} personas
+            <span v-if="item.tipoHabitacion.precioBase" class="ml-2">
+              | ${{ Number(item.tipoHabitacion.precioBase).toLocaleString() }}
+            </span>
+          </div>
+        </div>
+      </template>
+
+      <template #item.amenidades="{ item }">
+        <div v-if="item.tipoHabitacion?.amenidades && item.tipoHabitacion.amenidades.length > 0">
+          <v-chip
+            v-for="amenidad in item.tipoHabitacion.amenidades.slice(0, 3)"
+            :key="amenidad.id"
+            size="x-small"
+            class="mr-1 mb-1"
+            variant="tonal"
+          >
+            <v-icon v-if="amenidad.icono" :icon="amenidad.icono" size="x-small" start />
+            {{ amenidad.nombre }}
+          </v-chip>
+          <v-tooltip v-if="item.tipoHabitacion.amenidades.length > 3" location="bottom">
+            <template #activator="{ props }">
+              <v-chip v-bind="props" size="x-small" variant="tonal">
+                +{{ item.tipoHabitacion.amenidades.length - 3 }}
+              </v-chip>
+            </template>
+            <div>
+              <div v-for="amenidad in item.tipoHabitacion.amenidades.slice(3)" :key="amenidad.id">
+                {{ amenidad.nombre }}
+              </div>
+            </div>
+          </v-tooltip>
+        </div>
+        <span v-else class="text-caption text-medium-emphasis">Sin amenidades</span>
+      </template>
+
+      <template #item.estado="{ item }">
+        <v-chip
+          :color="getEstadoColor(item.estado)"
+          size="small"
+          variant="tonal"
+        >
+          {{ item.estado || 'disponible' }}
+        </v-chip>
+      </template>
+
+      <template #item.actions="{ item }">
+        <v-btn
+          icon="mdi-pencil"
+          variant="text"
+          size="small"
+          @click="openEditDialog(item)"
+        >
+          <v-icon>mdi-pencil</v-icon>
+          <v-tooltip activator="parent" location="bottom">Editar</v-tooltip>
+        </v-btn>
+        <v-btn
+          icon="mdi-delete"
+          variant="text"
+          size="small"
+          color="error"
+          @click="openDeleteDialog(item)"
+        >
+          <v-icon>mdi-delete</v-icon>
+          <v-tooltip activator="parent" location="bottom">Eliminar</v-tooltip>
+        </v-btn>
+      </template>
+    </v-data-table>
+
+    <!-- Dialog para crear/editar -->
+    <v-dialog v-model="dialog" max-width="600">
+      <v-card>
+        <v-card-title>
+          {{ editingItem ? 'Editar Habitación' : 'Nueva Habitación' }}
+        </v-card-title>
+        <v-card-text>
+          <v-form ref="form" v-model="valid">
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="formData.numeroHabitacion"
+                  label="Número de Habitación"
+                  :rules="[v => !!v || 'El número es requerido']"
+                  required
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="formData.piso"
+                  label="Piso"
+                />
+              </v-col>
+              <v-col cols="12">
+                <v-select
+                  v-model="formData.idTipoHabitacion"
+                  :items="tiposHabitacion"
+                  item-title="nombreTipo"
+                  item-value="id"
+                  label="Tipo de Habitación"
+                  :rules="[v => !!v || 'El tipo es requerido']"
+                  required
+                >
+                  <template #item="{ item, props }">
+                    <v-list-item v-bind="props">
+                      <template #subtitle>
+                        <div class="text-caption">
+                          Capacidad: {{ item.raw.capacidadPersonas }} personas
+                          <span v-if="item.raw.precioBase">
+                            | ${{ Number(item.raw.precioBase).toLocaleString() }}
+                          </span>
+                        </div>
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
+              </v-col>
+              <v-col cols="12">
+                <v-select
+                  v-model="formData.estado"
+                  :items="estadoOptions"
+                  label="Estado"
+                />
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="dialog = false">Cancelar</v-btn>
+          <v-btn
+            color="primary"
+            :loading="saving"
+            :disabled="!valid"
+            @click="saveHabitacion"
+          >
+            Guardar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Dialog para confirmar eliminación -->
+    <v-dialog v-model="deleteDialog" max-width="400">
+      <v-card>
+        <v-card-title>Confirmar Eliminación</v-card-title>
+        <v-card-text>
+          ¿Está seguro de eliminar la habitación <strong>{{ itemToDelete?.numeroHabitacion }}</strong>?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="deleteDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="error"
+            :loading="deleting"
+            @click="deleteHabitacion"
+          >
+            Eliminar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-card>
+</template>
+
+<script setup lang="ts">
+import type { Habitacion, TipoHabitacion, CreateHabitacionDto, UpdateHabitacionDto } from '~/types/api'
+
+const api = useApi()
+const { success, error } = useNotification()
+
+const habitaciones = ref<Habitacion[]>([])
+const tiposHabitacion = ref<TipoHabitacion[]>([])
+const loading = ref(false)
+const saving = ref(false)
+const deleting = ref(false)
+const filterEstado = ref('')
+const filterTipo = ref<number | null>(null)
+const filterNumero = ref('')
+
+const dialog = ref(false)
+const deleteDialog = ref(false)
+const valid = ref(false)
+const editingItem = ref<Habitacion | null>(null)
+const itemToDelete = ref<Habitacion | null>(null)
+
+const formData = ref<CreateHabitacionDto>({
+  idHotel: 1,
+  numeroHabitacion: '',
+  piso: '',
+  estado: 'disponible',
+  idTipoHabitacion: 0
+})
+
+const headers = [
+  { title: 'Habitación', key: 'numeroHabitacion', sortable: true },
+  { title: 'Tipo', key: 'tipoHabitacion', sortable: false },
+  { title: 'Amenidades', key: 'amenidades', sortable: false },
+  { title: 'Estado', key: 'estado', sortable: true },
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' as const }
+]
+
+const estadoOptions = [
+  'disponible',
+  'ocupada',
+  'mantenimiento',
+  'limpieza',
+  'reservada'
+]
+
+const habitacionesOptions = computed(() => {
+  return habitaciones.value.map(h => h.numeroHabitacion)
+})
+
+const filteredHabitaciones = computed(() => {
+  let filtered = habitaciones.value
+  
+  if (filterEstado.value) {
+    filtered = filtered.filter(h => h.estado === filterEstado.value)
+  }
+  
+  if (filterTipo.value) {
+    filtered = filtered.filter(h => h.idTipoHabitacion === filterTipo.value)
+  }
+  
+  if (filterNumero.value) {
+    filtered = filtered.filter(h => h.numeroHabitacion === filterNumero.value)
+  }
+  
+  return filtered
+})
+
+const getEstadoColor = (estado?: string) => {
+  const estados: Record<string, string> = {
+    'disponible': 'success',
+    'ocupada': 'error',
+    'mantenimiento': 'warning',
+    'limpieza': 'info',
+    'reservada': 'primary'
+  }
+  return estados[estado || 'disponible'] || 'grey'
+}
+
+const loadHabitaciones = async () => {
+  try {
+    loading.value = true
+    const response = await api.get<Habitacion[]>('/habitaciones')
+    habitaciones.value = response
+  } catch (err: any) {
+    error(err?.message || 'Error al cargar habitaciones')
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadTiposHabitacion = async () => {
+  try {
+    const response = await api.get<TipoHabitacion[]>('/tipos-habitacion')
+    tiposHabitacion.value = response
+  } catch (err: any) {
+    error(err?.message || 'Error al cargar tipos de habitación')
+  }
+}
+
+const openCreateDialog = () => {
+  editingItem.value = null
+  formData.value = {
+    idHotel: 1,
+    numeroHabitacion: '',
+    piso: '',
+    estado: 'disponible',
+    idTipoHabitacion: 0
+  }
+  dialog.value = true
+}
+
+const openEditDialog = (item: Habitacion) => {
+  editingItem.value = item
+  formData.value = {
+    idHotel: item.idHotel,
+    numeroHabitacion: item.numeroHabitacion,
+    piso: item.piso || '',
+    estado: item.estado || 'disponible',
+    idTipoHabitacion: item.idTipoHabitacion
+  }
+  dialog.value = true
+}
+
+const openDeleteDialog = (item: Habitacion) => {
+  itemToDelete.value = item
+  deleteDialog.value = true
+}
+
+const saveHabitacion = async () => {
+  try {
+    saving.value = true
+    
+    // Asegurar que los IDs sean números
+    const dataToSend = {
+      ...formData.value,
+      idHotel: Number(formData.value.idHotel),
+      idTipoHabitacion: Number(formData.value.idTipoHabitacion)
+    }
+    
+    if (editingItem.value) {
+      await api.patch<Habitacion>(`/habitaciones/${editingItem.value.id}`, dataToSend as UpdateHabitacionDto)
+      success('Habitación actualizada correctamente')
+    } else {
+      await api.post<Habitacion>('/habitaciones', dataToSend)
+      success('Habitación creada correctamente')
+    }
+    dialog.value = false
+    await loadHabitaciones()
+  } catch (err: any) {
+    error(err?.message || 'Error al guardar habitación')
+  } finally {
+    saving.value = false
+  }
+}
+
+const deleteHabitacion = async () => {
+  if (!itemToDelete.value) return
+  try {
+    deleting.value = true
+    await api.del(`/habitaciones/${itemToDelete.value.id}`)
+    success('Habitación eliminada correctamente')
+    deleteDialog.value = false
+    await loadHabitaciones()
+  } catch (err: any) {
+    error(err?.message || 'Error al eliminar habitación')
+  } finally {
+    deleting.value = false
+  }
+}
+
+onMounted(() => {
+  loadHabitaciones()
+  loadTiposHabitacion()
+})
+</script>
+
+<style scoped>
+.card-glow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+</style>

@@ -28,6 +28,9 @@ const ROUTE_META: Record<string, { title: string; parent?: string }> = {
   '/dashboard/profile': { title: 'Mi Perfil', parent: '/dashboard' },
   '/dashboard/admin/users': { title: 'Usuarios', parent: '/dashboard' },
   '/dashboard/admin/reset-stats': { title: 'Reset Stats', parent: '/dashboard' },
+  '/dashboard/admin/amenidades': { title: 'Amenidades', parent: '/dashboard' },
+  '/dashboard/admin/tipos-habitacion': { title: 'Tipos de Habitación', parent: '/dashboard' },
+  '/dashboard/admin/habitaciones': { title: 'Habitaciones', parent: '/dashboard' },
   '/dashboard/player': { title: 'Dashboard', parent: '/dashboard' },
   '/dashboard/player/clues': { title: 'Mis Pistas', parent: '/dashboard/player' },
   '/dashboard/sponsor': { title: 'Dashboard', parent: '/dashboard' },
@@ -79,6 +82,14 @@ export const useRoleNavigation = () => {
             items: [
               { title: 'Usuarios', icon: 'mdi-account-group-outline', to: '/dashboard/admin/users' },
               { title: 'Reset Stats', icon: 'mdi-chart-bar', to: '/dashboard/admin/reset-stats' },
+            ],
+          },
+          {
+            title: 'Hotel',
+            items: [
+              { title: 'Amenidades', icon: 'mdi-star-outline', to: '/dashboard/admin/amenidades' },
+              { title: 'Tipos de Habitación', icon: 'mdi-bed-outline', to: '/dashboard/admin/tipos-habitacion' },
+              { title: 'Habitaciones', icon: 'mdi-door', to: '/dashboard/admin/habitaciones' },
             ],
           },
           accountSection,
